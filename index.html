@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Hospital Bill Payment Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f4f7fa;
+      color: #333;
+    }
+
+    /* Header */
+    header {
+      background: #0d6efd;
+      color: white;
+      padding: 1rem 2rem;
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+      letter-spacing: 1px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    /* Layout */
+    .container {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      min-height: calc(100vh - 70px);
+    }
+
+    /* Sidebar */
+    nav {
+      background: #003566;
+      color: white;
+      padding: 1.5rem;
+    }
+    nav h3 {
+      margin-bottom: 1rem;
+      font-size: 1.2rem;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+      padding-bottom: 0.5rem;
+    }
+    nav ul {
+      list-style: none;
+    }
+    nav li {
+      margin: 0.8rem 0;
+      padding: 0.6rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    nav li:hover {
+      background: rgba(255,255,255,0.2);
+    }
+
+    /* Main */
+    main {
+      padding: 2rem;
+    }
+    h2 {
+      color: #0d6efd;
+      margin-bottom: 1rem;
+    }
+
+    /* Card Form */
+    .card {
+      background: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+      max-width: 500px;
+      margin-bottom: 1rem;
+    }
+
+    label {
+      display: block;
+      margin: 0.8rem 0 0.3rem;
+      font-weight: 500;
+    }
+    input, select {
+      width: 100%;
+      padding: 0.7rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      margin-bottom: 0.5rem;
+      font-size: 0.95rem;
+    }
+    button {
+      margin-top: 1rem;
+      padding: 0.8rem;
+      width: 100%;
+      background: #0d6efd;
+      border: none;
+      color: white;
+      font-size: 1rem;
+      font-weight: bold;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    button:hover {
+      background: #003566;
+    }
+
+    /* Receipt */
+    .receipt {
+      background: #e9f7ef;
+      border: 1px solid #0d6efd;
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-top: 1rem;
+      max-width: 500px;
+      display: none;
+      animation: fadeIn 0.5s ease-in-out;
+    }
+    .receipt h4 {
+      margin-bottom: 0.8rem;
+      color: #0d6efd;
+    }
+    .receipt p {
+      margin: 0.3rem 0;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+  <header>🏥 Hospital Bill Payment Dashboard</header>
+
+  <div class="container">
+    <!-- Sidebar -->
+    <nav>
+      <h3>Navigation</h3>
+      <ul>
+        <li>🏠 Dashboard</li>
+        <li>💳 Pay Bills</li>
+        <li>🧾 Patient Records</li>
+        <li>📊 Reports</li>
+        <li>⚙️ Settings</li>
+      </ul>
+    </nav>
+
+    <!-- Main Content -->
+    <main>
+      <h2>Pay Your Hospital Bill</h2>
+      <div class="card">
+        <form id="billForm">
+          <label for="patientName">Patient Name</label>
+          <input type="text" id="patientName" placeholder="Enter patient name" required>
+
+          <label for="patientId">Patient ID</label>
+          <input type="text" id="patientId" placeholder="Enter patient ID" required>
+
+          <label for="dept">Department</label>
+          <select id="dept">
+            <option>General</option>
+            <option>Cardiology</option>
+            <option>Neurology</option>
+            <option>Orthopedics</option>
+          </select>
+
+          <label for="amount">Amount (₹)</label>
+          <input type="number" id="amount" placeholder="Enter bill amount" required>
+
+          <label for="method">Payment Method</label>
+          <select id="method">
+            <option>Cash</option>
+            <option>Credit/Debit Card</option>
+            <option>UPI</option>
+          </select>
+
+          <button type="submit">💳 Pay Now</button>
+        </form>
+      </div>
+
+      <div id="receipt" class="receipt"></div>
+    </main>
+  </div>
+
+  <script>
+    const form = document.getElementById('billForm');
+    const receiptBox = document.getElementById('receipt');
+
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      const name = document.getElementById('patientName').value;
+      const id = document.getElementById('patientId').value;
+      const dept = document.getElementById('dept').value;
+      const amount = document.getElementById('amount').value;
+      const method = document.getElementById('method').value;
+
+      // Fake Transaction ID
+      const txnId = 'TXN' + Math.floor(Math.random() * 1000000);
+
+      receiptBox.style.display = 'block';
+      receiptBox.innerHTML = `
+        <h4>✅ Payment Successful</h4>
+        <p><strong>Patient:</strong> ${name} (ID: ${id})</p>
+        <p><strong>Department:</strong> ${dept}</p>
+        <p><strong>Amount Paid:</strong> ₹${amount}</p>
+        <p><strong>Payment Method:</strong> ${method}</p>
+        <p><strong>Transaction ID:</strong> ${txnId}</p>
+        <p style="color:green;"><strong>Status:</strong> SUCCESS</p>
+      `;
+
+      form.reset();
+    });
+  </script>
+</body>
+</html>
