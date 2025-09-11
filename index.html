@@ -1,458 +1,393 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>India Plastic-Ban Dashboard — Do's & Don'ts + Animal Impact</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>India's Plastic — Do's & Don'ts (Enhanced Dashboard)</title>
 
-<!-- Leaflet for maps (no API key) -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- html2pdf (export) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+  <!-- Leaflet for map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-<!-- Chart.js for animated charts -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    /* (Kept and simplified styles from earlier; still responsive and modern) */
+    :root{
+      --bg:#071021; --card:#0b1220; --muted:#9aa6b2; --accent:#06b6d4; --accent-2:#7c3aed; --glass:rgba(255,255,255,0.02);
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      color-scheme: dark;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;padding:22px;background:linear-gradient(180deg,#071021 0%, #081126 60%);color:#e6eef6}
+    .container{max-width:1200px;margin:0 auto;display:grid;grid-template-columns:1fr 380px;gap:18px}
+    header{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .logo{width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;font-weight:700}
+    h1{margin:0;font-size:20px}
+    .subtitle{color:var(--muted);font-size:13px}
 
-<style>
-  :root{
-    --bg: #fffaf6;
-    --card: #fff7ed;
-    --accent1: #ff7a45;
-    --accent2: #ffc66b;
-    --accent3: #6db39e;
-    --muted: #5b5b5b;
-    --shadow: 0 10px 30px rgba(20,20,20,0.06);
-    --radius: 12px;
-  }
-  * { box-sizing: border-box; }
-  body{ margin:0; font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial; background: linear-gradient(180deg,var(--bg), #fff6e8 60%); color:#1f1f1f; padding:16px; }
+    .card{background:var(--card);padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.03)}
+    main{display:block}
+    .overview{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .stats{display:flex;gap:12px;flex-wrap:wrap}
+    .stat{flex:1;min-width:130px;padding:10px;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))}
+    .chart-wrap{height:320px}
+    .dispose-list{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:12px}
+    .dispose-item{padding:10px;border-radius:8px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent)}
+    aside{display:block}
+    .animals .animal{display:flex;gap:10px;align-items:flex-start;padding:10px;border-radius:10px;margin-bottom:8px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent)}
+    .btn{background:linear-gradient(90deg,var(--accent),var(--accent-2));padding:10px 12px;border-radius:10px;border:none;color:#021024;font-weight:700;cursor:pointer}
 
-  header {
-    display:flex; align-items:center; gap:14px; padding:16px; border-radius:14px;
-    background: linear-gradient(90deg,var(--accent1), var(--accent2)); color:white; box-shadow:var(--shadow);
-  }
-  header h1{ margin:0; font-size:20px; }
-  header p{ margin:0; font-size:13px; opacity:0.95; }
+    #map{height:280px;border-radius:10px;border:1px solid rgba(255,255,255,0.03)}
+    .state-panel{display:flex;gap:8px;align-items:center;margin-top:10px}
+    .chip{display:inline-block;padding:6px 8px;border-radius:999px;font-size:12px;margin-right:6px;background:rgba(255,255,255,0.03)}
+    .small{font-size:13px;color:var(--muted)}
 
-  .layout{ display:grid; grid-template-columns: 320px 1fr 380px; gap:16px; height: calc(100vh - 108px); margin-top:12px; }
-
-  /* LEFT: animals list + form */
-  .panel{ background:var(--card); padding:12px; border-radius:var(--radius); box-shadow:var(--shadow); overflow:auto; }
-  .search-row{ display:flex; gap:8px; margin-bottom:12px; }
-  .search-row input, .search-row select { padding:8px; border-radius:8px; border:1px solid rgba(0,0,0,0.06); flex:1; }
-
-  .animal-card{ display:flex; gap:10px; padding:10px; border-radius:10px; background: #fff; margin-bottom:10px; cursor:pointer; border-left:4px solid var(--accent1); }
-  .animal-card img{ width:56px; height:56px; object-fit:cover; border-radius:8px; }
-  .animal-card h3{ margin:0; font-size:15px; }
-  .animal-card p{ margin:4px 0 0; color:var(--muted); font-size:13px; }
-
-  .form-row{ display:flex; gap:8px; margin-bottom:8px; }
-  .form-row input, .form-row select, .form-row textarea { width:100%; padding:8px; border-radius:8px; border:1px solid rgba(0,0,0,0.06); font-size:13px; }
-
-  button.primary{ background:var(--accent1); color:white; border:none; padding:9px 12px; border-radius:8px; cursor:pointer; font-weight:700; }
-
-  /* CENTER: graph + details + map */
-  .center{ display:flex; flex-direction:column; gap:12px; height:100%; }
-  .chart-card{ background:linear-gradient(180deg,#ffffff, #fffdf8); padding:14px; border-radius:12px; box-shadow:var(--shadow); text-align:center; }
-  .chart-title{ font-weight:700; color:var(--muted); margin-bottom:8px; }
-
-  .details{ display:flex; gap:14px; background:#fff; padding:12px; border-radius:12px; box-shadow:var(--shadow); align-items:flex-start; }
-  .details-left{ flex:1; }
-  .details-right{ width:320px; flex-shrink:0; }
-
-  #animal-image{ width:100%; height:220px; object-fit:cover; border-radius:10px; border:1px solid rgba(0,0,0,0.04); display:none; }
-
-  .info-block{ background: #fffaf1; padding:10px; border-radius:10px; border:1px solid rgba(0,0,0,0.03); margin-bottom:8px; }
-  .info-block h4{ margin:0 0 6px 0; }
-  .small{ font-size:13px; color:var(--muted); }
-
-  #map { width:100%; height:320px; border-radius:10px; border:1px solid rgba(0,0,0,0.06); }
-
-  /* RIGHT: do's & don'ts + where to throw */
-  .guide{ display:flex; flex-direction:column; gap:10px; height:100%; }
-  .card{ background:linear-gradient(180deg,#fff,#fffaf3); padding:12px; border-radius:12px; box-shadow:var(--shadow); overflow:auto; }
-  .do{ border-left:6px solid var(--accent3); padding-left:10px; margin-bottom:8px; }
-  .dont{ border-left:6px solid #ff6b6b; padding-left:10px; margin-bottom:8px; }
-  .bin-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-top:8px; }
-  .bin{ padding:8px; border-radius:8px; background:white; border:1px solid rgba(0,0,0,0.03); text-align:center; font-weight:700; }
-
-  footer{ margin-top:12px; text-align:center; color:var(--muted); font-size:13px; }
-
-  @media (max-width:1100px){
-    .layout{ grid-template-columns: 1fr; height:auto; }
-    .center{ order:2 }
-  }
-</style>
+    @media (max-width:980px){
+      .container{grid-template-columns:1fr;padding:12px}
+      header{flex-direction:column;align-items:flex-start}
+      .overview{grid-template-columns:1fr}
+      .dispose-list{grid-template-columns:1fr}
+    }
+  </style>
 </head>
 <body>
-
-<header>
-  <div style="flex:1">
-    <h1>India Plastic-Ban Dashboard</h1>
-    <p style="margin-top:6px;font-size:13px;opacity:0.95">Do's & Don'ts • Disposal Guide • Animal Impact & Tracking • Recycling locations</p>
-  </div>
-  <div style="text-align:right;color:white;font-weight:700">Community Tool — Demo</div>
-</header>
-
-<div class="layout">
-  <!-- LEFT: Animals list + add form -->
-  <div class="panel">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-      <div style="font-weight:800">Animals affected by plastic</div>
-      <div class="small">Click to view</div>
-    </div>
-
-    <div class="search-row">
-      <input id="search" placeholder="Search by name or species"/>
-      <select id="filter-status"><option value="">All status</option><option>Injured</option><option>Needs Treatment</option><option>Rescued</option></select>
-    </div>
-
-    <div id="animal-list" style="margin-bottom:12px"></div>
-
-    <hr style="border:none;border-top:1px dashed rgba(0,0,0,0.06);margin:10px 0"/>
-
-    <div style="font-weight:800;margin-bottom:8px">Add animal incident</div>
-    <div class="form-row">
-      <input id="name" placeholder="Name (eg. Turtle #12)"/>
-      <input id="species" placeholder="Species (eg. Olive Ridley Turtle)"/>
-    </div>
-    <div class="form-row">
-      <select id="status">
-        <option>Injured</option><option>Needs Treatment</option><option>Rescued</option><option>Observed</option>
-      </select>
-      <input id="date" type="date"/>
-    </div>
-    <div class="form-row">
-      <input id="health" placeholder="Health issues (eg. swallowed plastic)"/>
-      <input id="image" placeholder="Image URL (optional)"/>
-    </div>
-    <div class="form-row">
-      <input id="lat" placeholder="Latitude (eg. 12.9716)"/>
-      <input id="lng" placeholder="Longitude (eg. 77.5946)"/>
-    </div>
-    <button class="primary" onclick="addAnimal()">Add Incident</button>
-  </div>
-
-  <!-- CENTER: Chart at center top, details + map below -->
-  <div class="center">
-    <div class="chart-card">
-      <div class="chart-title">📈 Plastic Situation — Animated Overview</div>
-      <canvas id="mainChart" style="max-width:720px;margin: auto;"></canvas>
-      <div style="display:flex;gap:12px;justify-content:center;margin-top:10px">
-        <div class="small"><span style="font-weight:700;color:var(--accent1)">■</span> Single-use plastic</div>
-        <div class="small"><span style="font-weight:700;color:#ff6b6b">■</span> Littered plastic</div>
-        <div class="small"><span style="font-weight:700;color:var(--accent3)">■</span> Collected/recycled</div>
-        <div class="small"><span style="font-weight:700;color:#3a86ff">■</span> Proper disposal</div>
-      </div>
-    </div>
-
-    <div class="details">
-      <div class="details-left">
-        <img id="animal-image" alt="Selected animal image"/>
-        <div class="info-block">
-          <h4 id="a-name">Select an animal from the left</h4>
-          <div class="small"><strong>Species:</strong> <span id="a-species">-</span></div>
-          <div class="small"><strong>Status:</strong> <span id="a-status">-</span></div>
-          <div style="height:8px"></div>
-          <div class="small"><strong>Health issue:</strong> <span id="a-health">-</span></div>
-          <div style="height:8px"></div>
-          <div class="small"><strong>Rescue date:</strong> <span id="a-date">-</span></div>
-        </div>
-
-        <div class="info-block">
-          <h4>Where it was found</h4>
-          <div class="small" id="a-location">-</div>
-        </div>
-
-        <div class="info-block">
-          <h4>Notes / Rescuer thoughts</h4>
-          <div class="small" id="a-notes">No notes yet</div>
+  <div class="container">
+    <header>
+      <div style="display:flex;gap:12px;align-items:center">
+        <div class="logo">PB</div>
+        <div>
+          <h1>India's Plastic — Do's & Don'ts (Enhanced)</h1>
+          <div class="subtitle">State-wise checker • Official stats • Export & Map</div>
         </div>
       </div>
-
-      <div class="details-right">
-        <div style="font-weight:800;margin-bottom:8px">Drop-off / Recycling Map</div>
-        <div id="map"></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div class="small">Last updated: <strong id="lastUpdated">--</strong></div>
+        <button class="btn" id="exportBtn" title="Export to PDF">Export to PDF</button>
       </div>
-    </div>
+    </header>
+
+    <!-- Left (main) -->
+    <main>
+      <section class="card">
+        <h2 style="margin:0 0 8px 0">Overview (official figures & context)</h2>
+        <div class="small">Below are official CPCB numbers for plastic waste generation (tonnes/year, sample years). More recent academic estimates exist and are shown for context.</div>
+
+        <div style="margin-top:12px" class="overview">
+          <div>
+            <div class="stats" style="margin-bottom:12px">
+              <div class="stat">
+                <h3>2016–17</h3>
+                <p id="s2016">1,568,714 t</p>
+              </div>
+              <div class="stat">
+                <h3>2017–18</h3>
+                <p id="s2017">660,787 t</p>
+              </div>
+              <div class="stat">
+                <h3>2018–19</h3>
+                <p id="s2018">3,360,043 t</p>
+              </div>
+              <div class="stat">
+                <h3>2019–20</h3>
+                <p id="s2019">3,469,780 t</p>
+              </div>
+              <div class="stat">
+                <h3>2020–21</h3>
+                <p id="s2020">4,126,997 t</p>
+              </div>
+            </div>
+
+            <div id="chartCard" class="card" style="padding:10px">
+              <div style="display:flex;justify-content:space-between;align-items:center">
+                <div>
+                  <h3 style="margin:0">Plastic Types & Trend</h3>
+                  <div class="small">Stacked bars (by type) + total (trend)</div>
+                </div>
+                <div><span class="chip">Recyclable</span><span class="chip">Non-recyclable</span></div>
+              </div>
+              <div class="chart-wrap" style="margin-top:8px">
+                <canvas id="plasticChart" aria-label="Plastic types chart" role="img"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <!-- State-wise checker -->
+            <div class="card" style="margin-bottom:12px;">
+              <h3 style="margin:0 0 6px 0">State-wise Ban Checker</h3>
+              <div class="small">Select a state to view central and (sample) state-level notes. Replace sample data with official state notifications where available.</div>
+
+              <div class="state-panel" style="margin-top:8px">
+                <select id="stateSelect" style="flex:1;padding:8px;border-radius:8px;background:transparent;color:inherit;border:1px solid rgba(255,255,255,0.05)">
+                  <!-- options populated by JS -->
+                </select>
+                <button class="btn" id="refreshState">Refresh</button>
+              </div>
+
+              <div id="stateInfo" style="margin-top:10px"></div>
+
+              <div style="margin-top:10px" class="small">
+                <strong>Central rule summary:</strong> Identified single-use plastic items are prohibited nationwide w.e.f <strong>1 July 2022</strong>. States/UTs may have additional restrictions. (See sources below in the dashboard footer.)
+              </div>
+            </div>
+
+            <!-- Disposal / map -->
+            <div class="card">
+              <h3 style="margin:0 0 6px 0">Disposal map (sample authorised collection centres)</h3>
+              <div class="small">Use your browser's geolocation or search to find nearby collection centres. Replace the `centers` array in the script with your own dataset (CSV/GeoJSON).</div>
+              <div id="map"></div>
+              <div style="margin-top:8px" class="small">Sample centres shown — please replace with municipal / KaroSambhav / local NGO datasets for production. Example directory: KaroSambhav.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Practical do's/don'ts -->
+      <section class="card" style="margin-top:12px">
+        <h3 style="margin:0 0 8px 0">Practical Do's & Don'ts</h3>
+        <ul style="margin:0;color:var(--muted);line-height:1.6;padding-left:18px">
+          <li><strong style="color:#38b000">Do:</strong> segregate at source—wet, dry, recyclables & hazardous.</li>
+          <li><strong style="color:#38b000">Do:</strong> join local take-back / EPR programs where available.</li>
+          <li><strong style="color:#ef4444">Don't:</strong> dump plastic into drains, rivers, or open fields.</li>
+          <li><strong style="color:#ef4444">Don't:</strong> burn plastics — toxic emissions.</li>
+        </ul>
+      </section>
+    </main>
+
+    <!-- Right column -->
+    <aside>
+      <div class="card">
+        <h3 style="margin:0 0 6px 0">Wildlife & Pets — Quick Guide</h3>
+        <div class="animals small">
+          <div class="animal"><div style="font-size:22px">🐄</div><div><strong>Cow</strong><div class="small">Do: Keep grazing areas clean. Don't: Let animals ingest plastic-wrapped food.</div></div></div>
+          <div class="animal"><div style="font-size:22px">🐘</div><div><strong>Elephant</strong><div class="small">Do: Support clean-ups near forest fringes. Don't: Leave ropes/bottles near corridors.</div></div></div>
+          <div class="animal"><div style="font-size:22px">🐢</div><div><strong>Turtle</strong><div class="small">Do: Use beach bins. Don't: Leave plastic film (turtles mistake it for jellyfish).</div></div></div>
+          <div class="animal"><div style="font-size:22px">🐟</div><div><strong>Fish & Marine Life</strong><div class="small">Do: Keep drains plastic-free. Don't: Throw plastic near waterways.</div></div></div>
+          <div class="animal"><div style="font-size:22px">🕊️</div><div><strong>Birds</strong><div class="small">Do: Secure garbage; clip loose plastic. Don't: Leave food in wrappers.</div></div></div>
+          <div class="animal"><div style="font-size:22px">🐶</div><div><strong>Dogs</strong><div class="small">Do: Use covered bins. Don't: Discard food in plastic wrappers where dogs scavenge.</div></div></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <h3 style="margin:0 0 6px 0">Resources</h3>
+        <ol style="margin:0;color:var(--muted);padding-left:18px;line-height:1.6">
+          <li>Central rules & press releases (see footer).</li>
+          <li>Find local collection centres from NGOs or municipal portals (sample: KaroSambhav).</li>
+          <li>Consider integrating state notifications as JSON and keeping them updated.</li>
+        </ol>
+      </div>
+    </aside>
+
+    <footer style="grid-column:1/-1;margin-top:12px;display:flex;gap:12px;flex-wrap:wrap">
+      <div class="card" style="flex:1">
+        <strong>Notes & sources</strong>
+        <div class="small" style="margin-top:6px">
+          - Central single-use plastic ban effective 1 July 2022; CPCB lists items and provides implementation guidance. (See official press releases.)<br>
+          - CPCB reports used for official generation figures (2016–17 through 2020–21). For broader academic estimates see recent publications (Nature 2024, policy reports).
+        </div>
+      </div>
+      <div class="card small" style="width:340px">
+        <strong>Cited sources (examples)</strong>
+        <ul style="margin:8px 0 0 16px;line-height:1.5">
+          <li><a href="#" id="link_cpcb" style="color:inherit">CPCB annual report / PWM press</a></li>
+          <li><a href="#" id="link_pib" style="color:inherit">PIB press release: SUP ban (1 Jul 2022)</a></li>
+          <li><a href="#" id="link_karo" style="color:inherit">KaroSambhav (collection centres)</a></li>
+        </ul>
+      </div>
+    </footer>
   </div>
 
-  <!-- RIGHT: Do's & Don'ts + disposal guide -->
-  <div class="guide">
-    <div class="card">
-      <div style="font-weight:800;margin-bottom:8px">Do's — Reduce plastic harm</div>
-      <div class="do small">Use reusable bags, bottles & containers.</div>
-      <div class="do small">Prefer cloth or jute bags over single-use plastic.</div>
-      <div class="do small">Segregate waste at home into dry (recyclable) & wet.</div>
-      <div class="do small">Carry a small trash bag during beach/park visits.</div>
-      <div class="do small">Support local waste collection & ragpicker cooperatives.</div>
-    </div>
+  <!-- JS -->
+  <script>
+    // ============== Utility & sources (for footer links) =================
+    const sourceLinks = {
+      cpcb: "https://cpcb.nic.in/uploads/plasticwaste/Annual_Report_2019-20_PWM.pdf",
+      pib: "https://pib.gov.in/PressReleasePage.aspx?PRID=1837518",
+      karo: "https://karosambhav.com/collection-centres",
+      press_sup: "https://cpcb.nic.in/uploads/Press-release-SUP-ban-17062022.pdf",
+      nature: "https://www.nature.com/articles/s41586-024-07758-6"
+    };
+    document.getElementById('link_cpcb').href = sourceLinks.cpcb;
+    document.getElementById('link_pib').href = sourceLinks.pib;
+    document.getElementById('link_karo').href = sourceLinks.karo;
 
-    <div class="card">
-      <div style="font-weight:800;margin-bottom:8px">Don'ts — Avoid these</div>
-      <div class="dont small">Do not litter plastics in water bodies or roads.</div>
-      <div class="dont small">Avoid burning plastic at home (toxic fumes).</div>
-      <div class="dont small">Do not flush wet wipes or sanitary items in toilets.</div>
-      <div class="dont small">Don’t mix hazardous waste (batteries) with regular plastic recycling.</div>
-    </div>
+    // Last updated stamp
+    document.getElementById('lastUpdated').textContent = new Date().toLocaleString('en-IN', {dateStyle:'medium', timeStyle:'short'});
 
-    <div class="card">
-      <div style="font-weight:800;margin-bottom:8px">Where to throw — Quick guide</div>
-      <div class="bin-grid">
-        <div class="bin">Blue: Recyclables (clean PET bottles, paper)</div>
-        <div class="bin">Green: Compostable / Wet waste</div>
-        <div class="bin">Red: Hazardous (batteries, e-waste at collection centres)</div>
-        <div class="bin">Yellow: Single-use plastic (to recycling / collection points)</div>
-      </div>
+    // ============== Official sample numbers (CPCB) =======================
+    // The CPCB annual report (sample) reports these figures; keep or replace with fresh JSON.
+    const officialNumbers = {
+      "2016-17": 1568714,
+      "2017-18": 660787,
+      "2018-19": 3360043,
+      "2019-20": 3469780,
+      "2020-21": 4126997
+    };
+    document.getElementById('s2016').textContent = officialNumbers["2016-17"].toLocaleString('en-IN') + ' t';
+    document.getElementById('s2017').textContent = officialNumbers["2017-18"].toLocaleString('en-IN') + ' t';
+    document.getElementById('s2018').textContent = officialNumbers["2018-19"].toLocaleString('en-IN') + ' t';
+    document.getElementById('s2019').textContent = officialNumbers["2019-20"].toLocaleString('en-IN') + ' t';
+    document.getElementById('s2020').textContent = officialNumbers["2020-21"].toLocaleString('en-IN') + ' t';
 
-      <div style="margin-top:10px" class="small">
-        Common safe examples:<br/>
-        • PET bottles → Rinse & recycle at Blue bin or collection point.<br/>
-        • Food wrappers (contaminated) → Dry or landfill stream (if no recycling).<br/>
-        • Plastic bags → Avoid; if used, return to store take-back or dry recyclers.<br/>
-        • Gloves / masks → Seal in a bag & dispose as hazardous during pandemic.
-      </div>
-    </div>
-  </div>
-</div>
+    // ============== Chart (same stacked + trend pattern as before) =========
+    const years = Object.keys(officialNumbers);
+    // sample breakdown by type (synthetic but plausible); replace with state/municipal data as available
+    const sample = {
+      types: {
+        "Bottles": [12000,14000,15000,16000,18500],
+        "Plastic Bags": [40000,38000,36000,35000,32000],
+        "Film & Wraps": [18000,19000,19500,20000,21000],
+        "Multilayer Pouches": [9000,10000,11000,12000,13000]
+      }
+    };
+    const totals = years.map((_,i) => sample.types["Bottles"][i] + sample.types["Plastic Bags"][i] + sample.types["Film & Wraps"][i] + sample.types["Multilayer Pouches"][i]);
 
-<footer>Tip: Use the map to find nearby drop-off/recycling points and add incidents to document animal harm from plastic.</footer>
-
-<script>
-/* =========================
-   Demo data & initial state
-   ========================= */
-const animals = [
-  { id: 'T1', name:'Turtle #12', species:'Olive Ridley Turtle', status:'Injured', health:'Ingested plastic pieces; weakened', date:'2025-09-02',
-    lat:12.9716, lng:77.5946, img:'https://upload.wikimedia.org/wikipedia/commons/0/02/Olive_Ridley_Turtle_Gauribidanur.jpg', notes:'Found entangled near shore; needs vet.' },
-  { id: 'B7', name:'Barrel Gull', species:'Seagull', status:'Observed', health:'Plastic in beak; feeding impaired', date:'2025-08-28',
-    lat:19.07598, lng:72.87766, img:'https://upload.wikimedia.org/wikipedia/commons/6/6f/Indian_white-browed_gull.jpg', notes:'Observed struggling to feed.' },
-  { id: 'D3', name:'Dolphin #3', species:'Dolphin', status:'Rescued', health:'External entanglement cut; recovering', date:'2025-06-18',
-    lat:9.9312, lng:76.2673, img:'https://upload.wikimedia.org/wikipedia/commons/0/06/Dolphin.jpg', notes:'Rescued and moved to rehab centre.' }
-];
-
-const recyclingPoints = [
-  { name:'City Recycling Hub - Mumbai', lat:19.0840, lng:72.8817, type:'recycle' },
-  { name:'Beach Cleanup Drop - Chennai', lat:13.0420, lng:80.2490, type:'collection' },
-  { name:'Community Segregation Centre - Bengaluru', lat:12.9667, lng:77.5713, type:'recycle' },
-  { name:'E-waste Drop - Kochi', lat:9.9312, lng:76.2673, type:'hazard' }
-];
-
-/* ============
-   UI references
-   ============ */
-const listEl = document.getElementById('animal-list');
-const searchEl = document.getElementById('search');
-const filterStatusEl = document.getElementById('filter-status');
-
-const aName = document.getElementById('a-name');
-const aSpecies = document.getElementById('a-species');
-const aStatus = document.getElementById('a-status');
-const aHealth = document.getElementById('a-health');
-const aDate = document.getElementById('a-date');
-const aLocation = document.getElementById('a-location');
-const aNotes = document.getElementById('a-notes');
-const aImage = document.getElementById('animal-image');
-
-/* ============
-   Render list
-   ============ */
-function renderList(){
-  const q = (searchEl.value||'').toLowerCase();
-  const fs = filterStatusEl.value;
-  listEl.innerHTML = '';
-  const filtered = animals.filter(a=>{
-    return (!fs || a.status===fs) && (a.name.toLowerCase().includes(q) || a.species.toLowerCase().includes(q) || a.notes.toLowerCase().includes(q));
-  });
-  if(filtered.length===0){
-    listEl.innerHTML = '<div class="small">No incidents match</div>'; return;
-  }
-  filtered.forEach(a=>{
-    const div = document.createElement('div'); div.className='animal-card';
-    div.innerHTML = `<img src="${a.img||'https://upload.wikimedia.org/wikipedia/commons/8/89/No_image_available_600_x_450.svg'}" alt="" />
-      <div style="flex:1">
-        <h3>${a.name}</h3>
-        <p>${a.species} • <span style="font-weight:700">${a.status}</span></p>
-        <div class="small" style="margin-top:6px">${a.notes.slice(0,70)}${a.notes.length>70?'...':''}</div>
-      </div>`;
-    div.onclick = ()=> selectAnimal(a.id);
-    listEl.appendChild(div);
-  });
-}
-
-/* ==============
-   Select animal
-   ============== */
-let currentMarker=null;
-function selectAnimal(id){
-  const a = animals.find(x=>x.id===id);
-  if(!a) return;
-  aName.textContent = a.name;
-  aSpecies.textContent = a.species;
-  aStatus.textContent = a.status;
-  aHealth.textContent = a.health;
-  aDate.textContent = a.date;
-  aLocation.textContent = ${a.lat.toFixed(4)}, ${a.lng.toFixed(4)};
-  aNotes.textContent = a.notes;
-  if(a.img){ aImage.src = a.img; aImage.style.display='block'; } else { aImage.style.display='none'; }
-
-  // pan map to this animal and show popup
-  if(window.map){
-    window.map.setView([a.lat,a.lng], 11, {animate:true});
-    if(currentMarker) currentMarker.remove();
-    currentMarker = L.marker([a.lat,a.lng]).addTo(window.map).bindPopup(<strong>${a.name}</strong><br>${a.species}).openPopup();
-  }
-}
-
-/* ==============
-   Add animal
-   ============== */
-function addAnimal(){
-  const name = document.getElementById('name').value.trim();
-  const species = document.getElementById('species').value.trim();
-  const status = document.getElementById('status').value;
-  const date = document.getElementById('date').value || new Date().toISOString().slice(0,10);
-  const health = document.getElementById('health').value.trim() || 'Not specified';
-  const img = document.getElementById('image').value.trim();
-  const lat = parseFloat(document.getElementById('lat').value);
-  const lng = parseFloat(document.getElementById('lng').value);
-
-  if(!name || !species || isNaN(lat) || isNaN(lng)){
-    alert('Please provide name, species and valid coordinates.');
-    return;
-  }
-  const id = 'S' + Math.floor(Math.random()*9000+1000);
-  const note = Reported by community on ${date};
-  const newA = { id, name, species, status, health, date, lat, lng, img, notes: note };
-  animals.unshift(newA);
-  renderList();
-  updateChartCounts();
-  selectAnimal(id);
-  // add small marker to map
-  if(window.map){
-    const m = L.marker([lat,lng]).addTo(window.map).bindPopup(<strong>${name}</strong><br>${species});
-    recyclingPoints.push(); // no-op, just keep structure
-  }
-  // clear form fields (not all)
-  document.getElementById('name').value=''; document.getElementById('species').value=''; document.getElementById('health').value=''; document.getElementById('image').value=''; document.getElementById('lat').value=''; document.getElementById('lng').value='';
-}
-
-/* ==================
-   Initialize map
-   ================== */
-function initMap(){
-  const map = L.map('map').setView([20.5937,78.9629],5);
-  window.map = map;
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{ maxZoom:19, attribution:'© OpenStreetMap' }).addTo(map);
-
-  // markers for recycling points
-  recyclingPoints.forEach(p=>{
-    const color = p.type==='hazard' ? 'red' : p.type==='collection' ? 'orange' : 'green';
-    const marker = L.circleMarker([p.lat,p.lng], {radius:8, fill:true, fillOpacity:0.9, color:color}).addTo(map);
-    marker.bindPopup(<strong>${p.name}</strong><br/>Type: ${p.type});
-  });
-
-  // markers for animals
-  animals.forEach(a=>{
-    L.circleMarker([a.lat,a.lng], {radius:6, fill:true, fillOpacity:0.8, color:'#ff6b6b'}).addTo(map)
-      .bindPopup(<strong>${a.name}</strong><br>${a.species});
-  });
-}
-
-/* ==================
-   Charts (animated)
-   ================== */
-let mainChart;
-function makeChart(){
-  const ctx = document.getElementById('mainChart').getContext('2d');
-  // initial data (demo)
-  const labels = generateTimeLabels(8);
-  const datasets = [
-    { label:'Single-use plastic (tonnes/day)', data: randSeries(labels.length,80,20), borderColor: 'rgba(255,122,69,0.95)', backgroundColor:'rgba(255,122,69,0.06)', tension:0.4 },
-    { label:'Littered plastics', data: randSeries(labels.length,40,12), borderColor: 'rgba(255,107,107,0.95)', backgroundColor:'rgba(255,107,107,0.06)', tension:0.4 },
-    { label:'Collected / recycled', data: randSeries(labels.length,30,10), borderColor: 'rgba(109,179,158,0.95)', backgroundColor:'rgba(109,179,158,0.06)', tension:0.4 },
-    { label:'Proper disposal', data: randSeries(labels.length,25,8), borderColor: 'rgba(58,134,255,0.95)', backgroundColor:'rgba(58,134,255,0.06)', tension:0.4 }
-  ];
-  mainChart = new Chart(ctx, {
-    type:'line',
-    data:{ labels, datasets },
-    options:{
-      responsive:true,
-      plugins:{ legend:{ position:'top'}},
-      scales:{ y:{ beginAtZero:true } },
-      animation: { duration:800 }
-    }
-  });
-
-  // animate by adding new point periodically
-  setInterval(()=> {
-    const nextLabel = new Date().toLocaleTimeString();
-    mainChart.data.labels.push(nextLabel);
-    if(mainChart.data.labels.length>12) mainChart.data.labels.shift();
-    mainChart.data.datasets.forEach(ds=>{
-      const last = ds.data[ds.data.length-1] || 10;
-      const drift = (Math.random()-0.4)*6; // small random walk biased slightly downward for litter maybe
-      ds.data.push(Math.max(0, Math.round(last + drift)));
-      if(ds.data.length>12) ds.data.shift();
+    const ctx = document.getElementById('plasticChart').getContext('2d');
+    const plasticChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: years,
+        datasets: [
+          { label:'Bottles', data: sample.types["Bottles"], stack:'s1' },
+          { label:'Plastic Bags', data: sample.types["Plastic Bags"], stack:'s1' },
+          { label:'Film & Wraps', data: sample.types["Film & Wraps"], stack:'s1' },
+          { label:'Multilayer Pouches', data: sample.types["Multilayer Pouches"], stack:'s1' },
+          { label:'Total (trend)', data: totals, type:'line', yAxisID:'y1', borderWidth:2, fill:false, pointRadius:3, order:2 }
+        ]
+      },
+      options: {
+        responsive:true,
+        interaction:{mode:'index', intersect:false},
+        plugins:{legend:{position:'top'}},
+        scales:{
+          x:{stacked:true},
+          y:{stacked:true, title:{display:true,text:'Tonnes (stacked)'}},
+          y1:{position:'right', grid:{display:false}, ticks:{display:false}}
+        },
+        animation:{duration:1200,easing:'easeOutCubic'}
+      }
     });
-    mainChart.update();
-  }, 3000);
-}
 
-function generateTimeLabels(n){
-  const arr=[];
-  for(let i=n-1;i>=0;i--){
-    arr.push(new Date(Date.now() - i*60000).toLocaleTimeString());
-  }
-  return arr;
-}
-function randSeries(n,base,varn){ const out=[]; for(let i=0;i<n;i++) out.push(Math.max(0, Math.round(base + (Math.random()-0.5)*varn))); return out; }
+    // ============== State-wise checker (skeleton with sample notes) =========
+    // IMPORTANT: This object is a SAMPLE. Replace each state's 'notes' value with official state notifications (PDF links/summary).
+    const stateData = {
+      "All India (Central rule)": {
+        summary: "Central rule: Identified single-use plastic items are prohibited nationwide w.e.f 1 July 2022. States/UTs may add further restrictions.",
+        link: sourceLinks.pib,
+        items: ["Plastic sticks (earbuds etc.)","Straws","Cups/plates/cutlery","Certain lightweight carry bags (<120 microns after deadline)"],
+        note: "Refer to central PWM Amendment rules & state pollution control boards for state-specific notifications."
+      },
+      "Maharashtra (sample)": {
+        summary: "Maharashtra has state-level implementation guidelines and municipal-level directives in many cities. Check Maharashtra Pollution Control Board (MPCB) for details.",
+        link: "https://mpcb.gov.in/",
+        items: [],
+        note: "Municipalities often enforce stricter rules; update here with official notification links."
+      },
+      "Delhi (sample)": {
+        summary: "Delhi enforces central ban and has municipal fines for littering and burning. Check DPCC / MCD notices.",
+        link: "https://www.dpccair.org/",
+        items: [],
+        note: "Local urban bodies carry enforcement responsibilities."
+      },
+      "Kerala (sample)": {
+        summary:"Kerala often runs aggressive anti-plastic drives; check Kerala State Pollution Control Board for local notifications.",
+        link:"https://www.keralapcb.nic.in/",
+        items: [],
+        note:"Some districts/municipalities have additional bans and active take-back programs."
+      },
+      "Odisha (example news item)": {
+        summary:"Some districts in Odisha are declaring themselves single-use-plastic-free (example: Nuapada declared single-use plastic free per local reports). Replace with state notification if available.",
+        link:"https://timesofindia.indiatimes.com/",
+        items: [],
+        note:"This is an example of district-level success; always confirm with state PCB."
+      }
+      // Add remaining states/UTs here; maintainers should store this JSON on a server for easy updates.
+    };
 
-/* ===========================
-   Pie chart counts (animals)
-   =========================== */
-let miniChart;
-function buildMiniCounts(){
-  // small donut to show counts per status (not visible separately in UI but used to update)
-  const canvas = document.createElement('canvas'); canvas.style.display='none'; document.body.appendChild(canvas);
-  miniChart = new Chart(canvas.getContext('2d'), {
-    type:'doughnut',
-    data:{ labels:['Rescued','Injured','Needs Treatment','Observed'], datasets:[{ data:[0,0,0,0], backgroundColor:['#6db39e','#ff6b6b','#ffc66b','#c0c0c0'] }]},
-    options:{ responsive:false }
-  });
-  updateChartCounts();
-}
+    // Populate select UI
+    const stateSelect = document.getElementById('stateSelect');
+    Object.keys(stateData).forEach(k=>{
+      const opt = document.createElement('option'); opt.value = k; opt.textContent = k;
+      stateSelect.appendChild(opt);
+    });
+    const stateInfo = document.getElementById('stateInfo');
 
-function updateChartCounts(){
-  const counts = { Rescued:0, Injured:0, 'Needs Treatment':0, Observed:0 };
-  animals.forEach(a=>{
-    if(a.status==='Rescued') counts.Rescued++;
-    else if(a.status==='Injured') counts.Injured++;
-    else if(a.status==='Needs Treatment') counts['Needs Treatment']++;
-    else counts.Observed++;
-  });
-  miniChart.data.datasets[0].data = [counts.Rescued, counts.Injured, counts['Needs Treatment'], counts.Observed];
-  miniChart.update();
-}
+    function showState(name) {
+      const d = stateData[name];
+      let html = `<div style="padding:10px;border-radius:8px;background:rgba(255,255,255,0.01)"><strong>${name}</strong><div class="small" style="margin-top:8px">${d.summary}</div>`;
+      if(d.items && d.items.length){
+        html += `<div style="margin-top:8px"><strong>Notes / restricted items:</strong><ul style="margin:6px 0 0 16px">` + d.items.map(i=>`<li>${i}</li>`).join('') + `</ul></div>`;
+      }
+      html += `<div style="margin-top:8px" class="small">Reference: <a href="${d.link}" target="_blank" style="color:inherit">${d.link}</a></div>`;
+      html += `</div>`;
+      stateInfo.innerHTML = html;
+    }
+    // initial
+    showState(Object.keys(stateData)[0]);
+    document.getElementById('refreshState').addEventListener('click', ()=> showState(stateSelect.value));
 
-/* ===========================
-   Bindings & startup
-   =========================== */
-searchEl.addEventListener('input', renderList);
-filterStatusEl.addEventListener('change', renderList);
+    // ============== Map & sample collection centres (replace with your dataset) ============
+    // Sample centers array - replace with your own GeoJSON or call an API
+    const centers = [
+      {id:1,name:"Sample Collection Centre - Delhi (NGO)",city:"New Delhi",coords:[28.644800,77.216721],notes:"Dry waste accepted; call before drop-off"},
+      {id:2,name:"Recycling Hub - Mumbai (Recycler)",city:"Mumbai",coords:[19.075983,72.877655],notes:"Bottles & film; accepts segregated plastic"},
+      {id:3,name:"Collection Point - Bengaluru (Local Ward)",city:"Bengaluru",coords:[12.971599,77.594566],notes:"Household collection on certain days"}
+    ];
 
-window.addEventListener('load', ()=>{
-  renderList();
-  initMap();
-  makeChart();
-  buildMiniCounts();
-});
+    // Initialize Leaflet map
+    const map = L.map('map', { zoomControl:true }).setView([20.5937,78.9629], 5); // India center
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
 
-/* ===========================
-   Helpful utilities (for demo)
-   =========================== */
-// select first animal automatically after a short delay if exists
-setTimeout(()=>{ if(animals.length) selectAnimal(animals[0].id); }, 700);
+    // Add markers
+    const markers = L.featureGroup();
+    centers.forEach(c=>{
+      const m = L.marker(c.coords).bindPopup(`<strong>${c.name}</strong><div class="small">${c.city}</div><div class="small">${c.notes}</div>`);
+      markers.addLayer(m);
+    });
+    markers.addTo(map);
+    map.fitBounds(markers.getBounds(), {padding:[40,40]});
 
-</script>
+    // Optional: geolocate button
+    function tryGeolocate() {
+      if(!navigator.geolocation){ alert('Geolocation not supported'); return; }
+      navigator.geolocation.getCurrentPosition(pos=>{
+        const lat = pos.coords.latitude, lon = pos.coords.longitude;
+        map.setView([lat,lon],13);
+        L.circle([lat,lon], {radius:200, color:'#06b6d4', fillOpacity:0.09}).addTo(map).bindPopup('You are here');
+      }, err=>{
+        console.warn(err); alert('Could not get location — permission denied or unavailable.');
+      }, {timeout:8000});
+    }
+    // add small button
+    const geoBtn = L.control({position:'topright'});
+    geoBtn.onAdd = function(){ const d = L.DomUtil.create('div',''); d.innerHTML = '<button title="Find my location" style="padding:6px;border-radius:6px;border:none;background:#ffffff22;color:inherit">📍 My location</button>'; d.firstChild.onclick = tryGeolocate; return d; }
+    geoBtn.addTo(map);
+
+    // ============== Export to PDF (html2pdf) ==========================
+    document.getElementById('exportBtn').addEventListener('click', ()=>{
+      // html2pdf will render the full document; tweak options for quality/scale as needed
+      const opt = {
+        margin:0.4,
+        filename: 'India-Plastic-Dashboard.pdf',
+        image: { type:'jpeg', quality:0.95 },
+        html2canvas: { scale: 1.25, useCORS: true },
+        jsPDF: { unit:'in', format:'a4', orientation:'portrait' }
+      };
+      // Temporarily expand charts for better print quality (optional)
+      html2pdf().set(opt).from(document.body).save();
+    });
+
+    // ============== Developer notes (inline) ============================
+    // - To add real state-level rules: replace the `stateData` object with a server-fetched JSON (eg. /data/state_rules.json).
+    // - To load real disposal centers: fetch a GeoJSON (municipal API or NGO directories) and build markers programmatically.
+    // - To update official numbers: fetch CPCB CSV/JSON and call updateChart(newSample) (function inlined below for convenience).
+    // - For large datasets, cluster Leaflet markers (Leaflet.markercluster) for performance.
+    // - For production, host html2pdf and leaflet assets locally and secure any API keys.
+  </script>
 </body>
 </html>
