@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>India Plastic-Ban Dashboard — Do's & Don'ts + Animal Impact</title>
+
+<!-- Leaflet for maps (no API key) -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Chart.js for animated charts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<style>
+  :root{
+    --bg: #fffaf6;
+    --card: #fff7ed;
+    --accent1: #ff7a45;
+    --accent2: #ffc66b;
+    --accent3: #6db39e;
+    --muted: #5b5b5b;
+    --shadow: 0 10px 30px rgba(20,20,20,0.06);
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  body{ margin:0; font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Arial; background: linear-gradient(180deg,var(--bg), #fff6e8 60%); color:#1f1f1f; padding:16px; }
+
+  header {
+    display:flex; align-items:center; gap:14px; padding:16px; border-radius:14px;
+    background: linear-gradient(90deg,var(--accent1), var(--accent2)); color:white; box-shadow:var(--shadow);
+  }
+  header h1{ margin:0; font-size:20px; }
+  header p{ margin:0; font-size:13px; opacity:0.95; }
+
+  .layout{ display:grid; grid-template-columns: 320px 1fr 380px; gap:16px; height: calc(100vh - 108px); margin-top:12px; }
+
+  /* LEFT: animals list + form */
+  .panel{ background:var(--card); padding:12px; border-radius:var(--radius); box-shadow:var(--shadow); overflow:auto; }
+  .search-row{ display:flex; gap:8px; margin-bottom:12px; }
+  .search-row input, .search-row select { padding:8px; border-radius:8px; border:1px solid rgba(0,0,0,0.06); flex:1; }
+
+  .animal-card{ display:flex; gap:10px; padding:10px; border-radius:10px; background: #fff; margin-bottom:10px; cursor:pointer; border-left:4px solid var(--accent1); }
+  .animal-card img{ width:56px; height:56px; object-fit:cover; border-radius:8px; }
+  .animal-card h3{ margin:0; font-size:15px; }
+  .animal-card p{ margin:4px 0 0; color:var(--muted); font-size:13px; }
+
+  .form-row{ display:flex; gap:8px; margin-bottom:8px; }
+  .form-row input, .form-row select, .form-row textarea { width:100%; padding:8px; border-radius:8px; border:1px solid rgba(0,0,0,0.06); font-size:13px; }
+
+  button.primary{ background:var(--accent1); color:white; border:none; padding:9px 12px; border-radius:8px; cursor:pointer; font-weight:700; }
+
+  /* CENTER: graph + details + map */
+  .center{ display:flex; flex-direction:column; gap:12px; height:100%; }
+  .chart-card{ background:linear-gradient(180deg,#ffffff, #fffdf8); padding:14px; border-radius:12px; box-shadow:var(--shadow); text-align:center; }
+  .chart-title{ font-weight:700; color:var(--muted); margin-bottom:8px; }
+
+  .details{ display:flex; gap:14px; background:#fff; padding:12px; border-radius:12px; box-shadow:var(--shadow); align-items:flex-start; }
+  .details-left{ flex:1; }
+  .details-right{ width:320px; flex-shrink:0; }
+
+  #animal-image{ width:100%; height:220px; object-fit:cover; border-radius:10px; border:1px solid rgba(0,0,0,0.04); display:none; }
+
+  .info-block{ background: #fffaf1; padding:10px; border-radius:10px; border:1px solid rgba(0,0,0,0.03); margin-bottom:8px; }
+  .info-block h4{ margin:0 0 6px 0; }
+  .small{ font-size:13px; color:var(--muted); }
+
+  #map { width:100%; height:320px; border-radius:10px; border:1px solid rgba(0,0,0,0.06); }
+
+  /* RIGHT: do's & don'ts + where to throw */
+  .guide{ display:flex; flex-direction:column; gap:10px; height:100%; }
+  .card{ background:linear-gradient(180deg,#fff,#fffaf3); padding:12px; border-radius:12px; box-shadow:var(--shadow); overflow:auto; }
+  .do{ border-left:6px solid var(--accent3); padding-left:10px; margin-bottom:8px; }
+  .dont{ border-left:6px solid #ff6b6b; padding-left:10px; margin-bottom:8px; }
+  .bin-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:8px; margin-top:8px; }
+  .bin{ padding:8px; border-radius:8px; background:white; border:1px solid rgba(0,0,0,0.03); text-align:center; font-weight:700; }
+
+  footer{ margin-top:12px; text-align:center; color:var(--muted); font-size:13px; }
+
+  @media (max-width:1100px){
+    .layout{ grid-template-columns: 1fr; height:auto; }
+    .center{ order:2 }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div style="flex:1">
+    <h1>India Plastic-Ban Dashboard</h1>
+    <p style="margin-top:6px;font-size:13px;opacity:0.95">Do's & Don'ts • Disposal Guide • Animal Impact & Tracking • Recycling locations</p>
+  </div>
+  <div style="text-align:right;color:white;font-weight:700">Community Tool — Demo</div>
+</header>
+
+<div class="layout">
+  <!-- LEFT: Animals list + add form -->
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="font-weight:800">Animals affected by plastic</div>
+      <div class="small">Click to view</div>
+    </div>
+
+    <div class="search-row">
+      <input id="search" placeholder="Search by name or species"/>
+      <select id="filter-status"><option value="">All status</option><option>Injured</option><option>Needs Treatment</option><option>Rescued</option></select>
+    </div>
+
+    <div id="animal-list" style="margin-bottom:12px"></div>
+
+    <hr style="border:none;border-top:1px dashed rgba(0,0,0,0.06);margin:10px 0"/>
+
+    <div style="font-weight:800;margin-bottom:8px">Add animal incident</div>
+    <div class="form-row">
+      <input id="name" placeholder="Name (eg. Turtle #12)"/>
+      <input id="species" placeholder="Species (eg. Olive Ridley Turtle)"/>
+    </div>
+    <div class="form-row">
+      <select id="status">
+        <option>Injured</option><option>Needs Treatment</option><option>Rescued</option><option>Observed</option>
+      </select>
+      <input id="date" type="date"/>
+    </div>
+    <div class="form-row">
+      <input id="health" placeholder="Health issues (eg. swallowed plastic)"/>
+      <input id="image" placeholder="Image URL (optional)"/>
+    </div>
+    <div class="form-row">
+      <input id="lat" placeholder="Latitude (eg. 12.9716)"/>
+      <input id="lng" placeholder="Longitude (eg. 77.5946)"/>
+    </div>
+    <button class="primary" onclick="addAnimal()">Add Incident</button>
+  </div>
+
+  <!-- CENTER: Chart at center top, details + map below -->
+  <div class="center">
+    <div class="chart-card">
+      <div class="chart-title">📈 Plastic Situation — Animated Overview</div>
+      <canvas id="mainChart" style="max-width:720px;margin: auto;"></canvas>
+      <div style="display:flex;gap:12px;justify-content:center;margin-top:10px">
+        <div class="small"><span style="font-weight:700;color:var(--accent1)">■</span> Single-use plastic</div>
+        <div class="small"><span style="font-weight:700;color:#ff6b6b">■</span> Littered plastic</div>
+        <div class="small"><span style="font-weight:700;color:var(--accent3)">■</span> Collected/recycled</div>
+        <div class="small"><span style="font-weight:700;color:#3a86ff">■</span> Proper disposal</div>
+      </div>
+    </div>
+
+    <div class="details">
+      <div class="details-left">
+        <img id="animal-image" alt="Selected animal image"/>
+        <div class="info-block">
+          <h4 id="a-name">Select an animal from the left</h4>
+          <div class="small"><strong>Species:</strong> <span id="a-species">-</span></div>
+          <div class="small"><strong>Status:</strong> <span id="a-status">-</span></div>
+          <div style="height:8px"></div>
+          <div class="small"><strong>Health issue:</strong> <span id="a-health">-</span></div>
+          <div style="height:8px"></div>
+          <div class="small"><strong>Rescue date:</strong> <span id="a-date">-</span></div>
+        </div>
+
+        <div class="info-block">
+          <h4>Where it was found</h4>
+          <div class="small" id="a-location">-</div>
+        </div>
+
+        <div class="info-block">
+          <h4>Notes / Rescuer thoughts</h4>
+          <div class="small" id="a-notes">No notes yet</div>
+        </div>
+      </div>
+
+      <div class="details-right">
+        <div style="font-weight:800;margin-bottom:8px">Drop-off / Recycling Map</div>
+        <div id="map"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Do's & Don'ts + disposal guide -->
+  <div class="guide">
+    <div class="card">
+      <div style="font-weight:800;margin-bottom:8px">Do's — Reduce plastic harm</div>
+      <div class="do small">Use reusable bags, bottles & containers.</div>
+      <div class="do small">Prefer cloth or jute bags over single-use plastic.</div>
+      <div class="do small">Segregate waste at home into dry (recyclable) & wet.</div>
+      <div class="do small">Carry a small trash bag during beach/park visits.</div>
+      <div class="do small">Support local waste collection & ragpicker cooperatives.</div>
+    </div>
+
+    <div class="card">
+      <div style="font-weight:800;margin-bottom:8px">Don'ts — Avoid these</div>
+      <div class="dont small">Do not litter plastics in water bodies or roads.</div>
+      <div class="dont small">Avoid burning plastic at home (toxic fumes).</div>
+      <div class="dont small">Do not flush wet wipes or sanitary items in toilets.</div>
+      <div class="dont small">Don’t mix hazardous waste (batteries) with regular plastic recycling.</div>
+    </div>
+
+    <div class="card">
+      <div style="font-weight:800;margin-bottom:8px">Where to throw — Quick guide</div>
+      <div class="bin-grid">
+        <div class="bin">Blue: Recyclables (clean PET bottles, paper)</div>
+        <div class="bin">Green: Compostable / Wet waste</div>
+        <div class="bin">Red: Hazardous (batteries, e-waste at collection centres)</div>
+        <div class="bin">Yellow: Single-use plastic (to recycling / collection points)</div>
+      </div>
+
+      <div style="margin-top:10px" class="small">
+        Common safe examples:<br/>
+        • PET bottles → Rinse & recycle at Blue bin or collection point.<br/>
+        • Food wrappers (contaminated) → Dry or landfill stream (if no recycling).<br/>
+        • Plastic bags → Avoid; if used, return to store take-back or dry recyclers.<br/>
+        • Gloves / masks → Seal in a bag & dispose as hazardous during pandemic.
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>Tip: Use the map to find nearby drop-off/recycling points and add incidents to document animal harm from plastic.</footer>
+
+<script>
+/* =========================
+   Demo data & initial state
+   ========================= */
+const animals = [
+  { id: 'T1', name:'Turtle #12', species:'Olive Ridley Turtle', status:'Injured', health:'Ingested plastic pieces; weakened', date:'2025-09-02',
+    lat:12.9716, lng:77.5946, img:'https://upload.wikimedia.org/wikipedia/commons/0/02/Olive_Ridley_Turtle_Gauribidanur.jpg', notes:'Found entangled near shore; needs vet.' },
+  { id: 'B7', name:'Barrel Gull', species:'Seagull', status:'Observed', health:'Plastic in beak; feeding impaired', date:'2025-08-28',
+    lat:19.07598, lng:72.87766, img:'https://upload.wikimedia.org/wikipedia/commons/6/6f/Indian_white-browed_gull.jpg', notes:'Observed struggling to feed.' },
+  { id: 'D3', name:'Dolphin #3', species:'Dolphin', status:'Rescued', health:'External entanglement cut; recovering', date:'2025-06-18',
+    lat:9.9312, lng:76.2673, img:'https://upload.wikimedia.org/wikipedia/commons/0/06/Dolphin.jpg', notes:'Rescued and moved to rehab centre.' }
+];
+
+const recyclingPoints = [
+  { name:'City Recycling Hub - Mumbai', lat:19.0840, lng:72.8817, type:'recycle' },
+  { name:'Beach Cleanup Drop - Chennai', lat:13.0420, lng:80.2490, type:'collection' },
+  { name:'Community Segregation Centre - Bengaluru', lat:12.9667, lng:77.5713, type:'recycle' },
+  { name:'E-waste Drop - Kochi', lat:9.9312, lng:76.2673, type:'hazard' }
+];
+
+/* ============
+   UI references
+   ============ */
+const listEl = document.getElementById('animal-list');
+const searchEl = document.getElementById('search');
+const filterStatusEl = document.getElementById('filter-status');
+
+const aName = document.getElementById('a-name');
+const aSpecies = document.getElementById('a-species');
+const aStatus = document.getElementById('a-status');
+const aHealth = document.getElementById('a-health');
+const aDate = document.getElementById('a-date');
+const aLocation = document.getElementById('a-location');
+const aNotes = document.getElementById('a-notes');
+const aImage = document.getElementById('animal-image');
+
+/* ============
+   Render list
+   ============ */
+function renderList(){
+  const q = (searchEl.value||'').toLowerCase();
+  const fs = filterStatusEl.value;
+  listEl.innerHTML = '';
+  const filtered = animals.filter(a=>{
+    return (!fs || a.status===fs) && (a.name.toLowerCase().includes(q) || a.species.toLowerCase().includes(q) || a.notes.toLowerCase().includes(q));
+  });
+  if(filtered.length===0){
+    listEl.innerHTML = '<div class="small">No incidents match</div>'; return;
+  }
+  filtered.forEach(a=>{
+    const div = document.createElement('div'); div.className='animal-card';
+    div.innerHTML = `<img src="${a.img||'https://upload.wikimedia.org/wikipedia/commons/8/89/No_image_available_600_x_450.svg'}" alt="" />
+      <div style="flex:1">
+        <h3>${a.name}</h3>
+        <p>${a.species} • <span style="font-weight:700">${a.status}</span></p>
+        <div class="small" style="margin-top:6px">${a.notes.slice(0,70)}${a.notes.length>70?'...':''}</div>
+      </div>`;
+    div.onclick = ()=> selectAnimal(a.id);
+    listEl.appendChild(div);
+  });
+}
+
+/* ==============
+   Select animal
+   ============== */
+let currentMarker=null;
+function selectAnimal(id){
+  const a = animals.find(x=>x.id===id);
+  if(!a) return;
+  aName.textContent = a.name;
+  aSpecies.textContent = a.species;
+  aStatus.textContent = a.status;
+  aHealth.textContent = a.health;
+  aDate.textContent = a.date;
+  aLocation.textContent = ${a.lat.toFixed(4)}, ${a.lng.toFixed(4)};
+  aNotes.textContent = a.notes;
+  if(a.img){ aImage.src = a.img; aImage.style.display='block'; } else { aImage.style.display='none'; }
+
+  // pan map to this animal and show popup
+  if(window.map){
+    window.map.setView([a.lat,a.lng], 11, {animate:true});
+    if(currentMarker) currentMarker.remove();
+    currentMarker = L.marker([a.lat,a.lng]).addTo(window.map).bindPopup(<strong>${a.name}</strong><br>${a.species}).openPopup();
+  }
+}
+
+/* ==============
+   Add animal
+   ============== */
+function addAnimal(){
+  const name = document.getElementById('name').value.trim();
+  const species = document.getElementById('species').value.trim();
+  const status = document.getElementById('status').value;
+  const date = document.getElementById('date').value || new Date().toISOString().slice(0,10);
+  const health = document.getElementById('health').value.trim() || 'Not specified';
+  const img = document.getElementById('image').value.trim();
+  const lat = parseFloat(document.getElementById('lat').value);
+  const lng = parseFloat(document.getElementById('lng').value);
+
+  if(!name || !species || isNaN(lat) || isNaN(lng)){
+    alert('Please provide name, species and valid coordinates.');
+    return;
+  }
+  const id = 'S' + Math.floor(Math.random()*9000+1000);
+  const note = Reported by community on ${date};
+  const newA = { id, name, species, status, health, date, lat, lng, img, notes: note };
+  animals.unshift(newA);
+  renderList();
+  updateChartCounts();
+  selectAnimal(id);
+  // add small marker to map
+  if(window.map){
+    const m = L.marker([lat,lng]).addTo(window.map).bindPopup(<strong>${name}</strong><br>${species});
+    recyclingPoints.push(); // no-op, just keep structure
+  }
+  // clear form fields (not all)
+  document.getElementById('name').value=''; document.getElementById('species').value=''; document.getElementById('health').value=''; document.getElementById('image').value=''; document.getElementById('lat').value=''; document.getElementById('lng').value='';
+}
+
+/* ==================
+   Initialize map
+   ================== */
+function initMap(){
+  const map = L.map('map').setView([20.5937,78.9629],5);
+  window.map = map;
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{ maxZoom:19, attribution:'© OpenStreetMap' }).addTo(map);
+
+  // markers for recycling points
+  recyclingPoints.forEach(p=>{
+    const color = p.type==='hazard' ? 'red' : p.type==='collection' ? 'orange' : 'green';
+    const marker = L.circleMarker([p.lat,p.lng], {radius:8, fill:true, fillOpacity:0.9, color:color}).addTo(map);
+    marker.bindPopup(<strong>${p.name}</strong><br/>Type: ${p.type});
+  });
+
+  // markers for animals
+  animals.forEach(a=>{
+    L.circleMarker([a.lat,a.lng], {radius:6, fill:true, fillOpacity:0.8, color:'#ff6b6b'}).addTo(map)
+      .bindPopup(<strong>${a.name}</strong><br>${a.species});
+  });
+}
+
+/* ==================
+   Charts (animated)
+   ================== */
+let mainChart;
+function makeChart(){
+  const ctx = document.getElementById('mainChart').getContext('2d');
+  // initial data (demo)
+  const labels = generateTimeLabels(8);
+  const datasets = [
+    { label:'Single-use plastic (tonnes/day)', data: randSeries(labels.length,80,20), borderColor: 'rgba(255,122,69,0.95)', backgroundColor:'rgba(255,122,69,0.06)', tension:0.4 },
+    { label:'Littered plastics', data: randSeries(labels.length,40,12), borderColor: 'rgba(255,107,107,0.95)', backgroundColor:'rgba(255,107,107,0.06)', tension:0.4 },
+    { label:'Collected / recycled', data: randSeries(labels.length,30,10), borderColor: 'rgba(109,179,158,0.95)', backgroundColor:'rgba(109,179,158,0.06)', tension:0.4 },
+    { label:'Proper disposal', data: randSeries(labels.length,25,8), borderColor: 'rgba(58,134,255,0.95)', backgroundColor:'rgba(58,134,255,0.06)', tension:0.4 }
+  ];
+  mainChart = new Chart(ctx, {
+    type:'line',
+    data:{ labels, datasets },
+    options:{
+      responsive:true,
+      plugins:{ legend:{ position:'top'}},
+      scales:{ y:{ beginAtZero:true } },
+      animation: { duration:800 }
+    }
+  });
+
+  // animate by adding new point periodically
+  setInterval(()=> {
+    const nextLabel = new Date().toLocaleTimeString();
+    mainChart.data.labels.push(nextLabel);
+    if(mainChart.data.labels.length>12) mainChart.data.labels.shift();
+    mainChart.data.datasets.forEach(ds=>{
+      const last = ds.data[ds.data.length-1] || 10;
+      const drift = (Math.random()-0.4)*6; // small random walk biased slightly downward for litter maybe
+      ds.data.push(Math.max(0, Math.round(last + drift)));
+      if(ds.data.length>12) ds.data.shift();
+    });
+    mainChart.update();
+  }, 3000);
+}
+
+function generateTimeLabels(n){
+  const arr=[];
+  for(let i=n-1;i>=0;i--){
+    arr.push(new Date(Date.now() - i*60000).toLocaleTimeString());
+  }
+  return arr;
+}
+function randSeries(n,base,varn){ const out=[]; for(let i=0;i<n;i++) out.push(Math.max(0, Math.round(base + (Math.random()-0.5)*varn))); return out; }
+
+/* ===========================
+   Pie chart counts (animals)
+   =========================== */
+let miniChart;
+function buildMiniCounts(){
+  // small donut to show counts per status (not visible separately in UI but used to update)
+  const canvas = document.createElement('canvas'); canvas.style.display='none'; document.body.appendChild(canvas);
+  miniChart = new Chart(canvas.getContext('2d'), {
+    type:'doughnut',
+    data:{ labels:['Rescued','Injured','Needs Treatment','Observed'], datasets:[{ data:[0,0,0,0], backgroundColor:['#6db39e','#ff6b6b','#ffc66b','#c0c0c0'] }]},
+    options:{ responsive:false }
+  });
+  updateChartCounts();
+}
+
+function updateChartCounts(){
+  const counts = { Rescued:0, Injured:0, 'Needs Treatment':0, Observed:0 };
+  animals.forEach(a=>{
+    if(a.status==='Rescued') counts.Rescued++;
+    else if(a.status==='Injured') counts.Injured++;
+    else if(a.status==='Needs Treatment') counts['Needs Treatment']++;
+    else counts.Observed++;
+  });
+  miniChart.data.datasets[0].data = [counts.Rescued, counts.Injured, counts['Needs Treatment'], counts.Observed];
+  miniChart.update();
+}
+
+/* ===========================
+   Bindings & startup
+   =========================== */
+searchEl.addEventListener('input', renderList);
+filterStatusEl.addEventListener('change', renderList);
+
+window.addEventListener('load', ()=>{
+  renderList();
+  initMap();
+  makeChart();
+  buildMiniCounts();
+});
+
+/* ===========================
+   Helpful utilities (for demo)
+   =========================== */
+// select first animal automatically after a short delay if exists
+setTimeout(()=>{ if(animals.length) selectAnimal(animals[0].id); }, 700);
+
+</script>
+</body>
+</html>
